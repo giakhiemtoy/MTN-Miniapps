@@ -1,0 +1,5 @@
+{
+  "name": "SEM Ad Text Generator",
+  "description": "An application to generate Google Ads copy for SEM campaigns. Users can define campaign structure, ad groups, keywords, and tone to get tailored ad text, headlines, and descriptions powered by Gemini.",
+  "requestFramePermissions": []
+}
