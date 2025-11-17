@@ -1,9 +1,7 @@
-
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { AdGroupData, GeneratedAdGroup, Sitelink, Headline, Description } from './types';
 import AdGroupForm from './components/AdGroupForm';
 import AdResultsDisplay from './components/AdResultsDisplay';
-import ApiKeyModal from './components/ApiKeyModal';
 import { generateAdCopy, generateSingleTextItem } from './services/geminiService';
 import { exportToCSV } from './utils/csvExporter';
 import { GenerateIcon } from './components/icons/GenerateIcon';
@@ -11,9 +9,6 @@ import { ExportIcon } from './components/icons/ExportIcon';
 import { LoadingSpinner } from './components/icons/LoadingSpinner';
 
 const App: React.FC = () => {
-    const [apiKey, setApiKey] = useState<string>('');
-    const [showApiKeyModal, setShowApiKeyModal] = useState<boolean>(false);
-
     const [campaignTopic, setCampaignTopic] = useState<string>('');
     const [campaignExtensions, setCampaignExtensions] = useState<string>('');
     const [campaignCallouts, setCampaignCallouts] = useState<string>('');
@@ -31,31 +26,6 @@ const App: React.FC = () => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [regeneratingItems, setRegeneratingItems] = useState<Set<string>>(new Set());
     const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        const storedApiKey = localStorage.getItem('gemini_api_key');
-        if (storedApiKey) {
-            setApiKey(storedApiKey);
-            setShowApiKeyModal(false);
-        } else {
-            setShowApiKeyModal(true);
-        }
-    }, []);
-
-    const handleApiKeySave = (newKey: string) => {
-        if(newKey.trim()) {
-            setApiKey(newKey);
-            localStorage.setItem('gemini_api_key', newKey);
-            setShowApiKeyModal(false);
-            setError(null);
-        }
-    };
-    
-    const handleChangeApiKey = () => {
-        setApiKey('');
-        localStorage.removeItem('gemini_api_key');
-        setShowApiKeyModal(true);
-    }
 
     const handleAdGroupCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         let count = parseInt(e.target.value, 10);
@@ -101,11 +71,6 @@ const App: React.FC = () => {
     };
 
     const handleGenerateClick = async () => {
-        if (!apiKey) {
-            setError('Vui lòng cung cấp API Key của bạn để tiếp tục.');
-            setShowApiKeyModal(true);
-            return;
-        }
         if (!campaignTopic.trim()) {
             setError('Vui lòng nhập Chủ đề Chung cho chiến dịch.');
             return;
@@ -118,17 +83,13 @@ const App: React.FC = () => {
         try {
             const results = await Promise.all(
                 adGroupsData.map(groupData => 
-                    generateAdCopy(apiKey, campaignTopic, campaignExtensions, campaignCallouts, groupData, generationConfig)
+                    generateAdCopy(campaignTopic, campaignExtensions, campaignCallouts, groupData, generationConfig)
                 )
             );
             setGeneratedAds(results);
         } catch (err: any) {
             console.error(err);
             setError(err.message || 'Đã có lỗi xảy ra trong quá trình tạo quảng cáo. Vui lòng thử lại.');
-             if (err.message.includes("API key not valid")) {
-                setError("API Key không hợp lệ. Vui lòng kiểm tra lại.");
-                setShowApiKeyModal(true);
-            }
         } finally {
             setIsLoading(false);
         }
@@ -148,11 +109,6 @@ const App: React.FC = () => {
         itemId: string,
         variantIndex?: number,
     ) => {
-        if (!apiKey) {
-            setError('Vui lòng cung cấp API Key của bạn để tiếp tục.');
-            setShowApiKeyModal(true);
-            return;
-        }
         setRegeneratingItems(prev => new Set(prev).add(itemId));
 
         const adGroup = generatedAds[adGroupIndex];
@@ -171,7 +127,7 @@ const App: React.FC = () => {
         }
 
         try {
-            const newContent = await generateSingleTextItem(apiKey, {
+            const newContent = await generateSingleTextItem({
                 campaignTopic,
                 adGroupData,
                 existingItems,
@@ -213,7 +169,7 @@ const App: React.FC = () => {
                 return newSet;
             });
         }
-    }, [apiKey, campaignTopic, adGroupsData, generatedAds, generationConfig.language]);
+    }, [campaignTopic, adGroupsData, generatedAds, generationConfig.language]);
 
     const handleAddItem = useCallback((adGroupIndex: number, itemType: 'headline' | 'description' | 'sitelink' | 'callout', variantIndex?: number) => {
         setGeneratedAds(currentAds => {
@@ -263,19 +219,10 @@ const App: React.FC = () => {
 
     return (
         <>
-            {showApiKeyModal && <ApiKeyModal onSave={handleApiKeySave} currentApiKey={apiKey} />}
-            <div className={`container mx-auto p-4 md:p-8 transition-filter duration-300 ${showApiKeyModal ? 'filter blur-sm pointer-events-none' : ''}`}>
+            <div className="container mx-auto p-4 md:p-8">
                 <header className="mb-8">
                     <div className="flex justify-between items-center mb-2">
                         <h1 className="text-3xl md:text-4xl font-bold text-gray-800">SEM Ad Text Generator</h1>
-                        {apiKey && (
-                            <button 
-                                onClick={handleChangeApiKey}
-                                className="text-sm text-blue-600 hover:text-blue-800 underline"
-                            >
-                                Thay đổi API Key
-                            </button>
-                        )}
                     </div>
                      <p className="text-md text-gray-600">Tạo nội dung quảng cáo Google Ads cho các chiến dịch SEM của bạn với sức mạnh của Gemini.</p>
                 </header>

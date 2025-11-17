@@ -53,17 +53,13 @@ function validateAndSanitize(data: any, config: GenerationConfig): GeneratedAdGr
 
 
 export async function generateAdCopy(
-    apiKey: string,
     campaignTopic: string,
     campaignExtensions: string,
     campaignCallouts: string,
     adGroupData: AdGroupData,
     config: GenerationConfig
 ): Promise<GeneratedAdGroup> {
-    if (!apiKey) {
-        throw new Error("API Key is missing.");
-    }
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     const prompt = `
         You are an expert Google Ads copywriter. Your task is to generate compelling ad copy based on the provided information.
@@ -132,9 +128,6 @@ export async function generateAdCopy(
 
     } catch (error) {
         console.error("Error calling Gemini API:", error);
-        if (error instanceof Error && error.message.includes("API key not valid")) {
-            throw new Error("API key not valid. Please pass a valid API key.");
-        }
         // Return a fallback structure on error to prevent app crash
         return {
             adGroupName: adGroupData.topic || "Error Generating Name",
@@ -151,7 +144,6 @@ export async function generateAdCopy(
 type SingleItem = string | { title: string; description1: string; description2: string };
 
 export async function generateSingleTextItem(
-    apiKey: string,
     context: {
         campaignTopic: string,
         adGroupData: AdGroupData,
@@ -160,10 +152,7 @@ export async function generateSingleTextItem(
         language: string,
     }
 ): Promise<SingleItem> {
-     if (!apiKey) {
-        throw new Error("API Key is missing.");
-    }
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     const { campaignTopic, adGroupData, existingItems, itemType, language } = context;
 
@@ -251,9 +240,6 @@ export async function generateSingleTextItem(
             }
         } catch (error) {
              console.error(`Error generating single ${itemType} on attempt ${attempts}:`, error);
-             if (error instanceof Error && error.message.includes("API key not valid")) {
-                throw new Error("API key not valid. Please pass a valid API key.");
-             }
              // Don't retry on API error, just break and fall through to the final error return
              break;
         }
